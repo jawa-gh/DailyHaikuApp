@@ -1,0 +1,87 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies (root + any nested package, e.g. functions/)
+**/node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+ios/
+android/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Local build artifacts
+*.ipa
+*.apk
+*.aab
+
+# Metro
+.metro-health-check*
+
+# Firebase Cloud Functions — compiled output and CLI artifacts
+functions/lib/
+.firebase/
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+
+# Firebase Admin service account keys — NEVER commit these
+*-firebase-adminsdk-*.json
+serviceAccountKey*.json
+
+# Firebase client config — these embed an API key, project ID, OAuth client
+# IDs, and the messaging sender ID. Firebase claims they're "public" because
+# security is enforced via Auth + Firestore rules, but for a PUBLIC repo we
+# don't commit them. EAS Build needs them at build time — manage via EAS
+# secret files (`eas secret:create --type file ...`) or document the local
+# setup in README.md and ship `.example` placeholders instead.
+GoogleService-Info.plist
+google-services.json
+firebaseConfig.js
+
+# Firebase project alias mapping — reveals the project ID. Low sensitivity
+# (the project ID is in the client configs too), but cleaner to keep out of
+# a public repo.
+.firebaserc
+
+# Functions runtime config (legacy first-gen Functions env)
+.runtimeconfig.json
+functions/.runtimeconfig.json
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env
+.env*.local
+
+# local markdown files
+*.local.md
+
+# typescript
+*.tsbuildinfo
+.vercel
+
+# IDE
+.vscode/
+.idea/
+
+# Claude Code local config (settings.json, permissions, transcripts)
+.claude/
+
+core

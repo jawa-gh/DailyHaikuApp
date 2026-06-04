@@ -1,0 +1,26 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Per-user state document. Schema:
+    //   credits: number              — current credit balance
+    //   dailyFree: { date, used }    — UTC date string + bool
+    //   starterClaimed: boolean      — has the non-consumable starter been credited
+    //   updatedAt: Timestamp
+    //
+    // Clients can read their own doc (for UI display); only Cloud Functions
+    // (which use the Admin SDK and bypass these rules) may write.
+    match /users/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // RevenueCat event ledger — used by the webhook for idempotency
+    // (don't grant the same purchase twice). Admin-only.
+    match /processedTransactions/{txId} {
+      allow read, write: if false;
+    }
+
+  }
+}
