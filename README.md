@@ -2,7 +2,7 @@
 
 A small mobile app that quietly delivers an original AI-composed haiku every morning. Each haiku is written for the current season or a theme you pick, in the spirit of Bashō, Buson, and Issa — and can be paired with an original ink-wash illustration generated from the verse itself.
 
-Available on the App Store and Google Play. Web companion at [dailyhaiku.app](https://dailyhaiku.app).
+Available on the App Store and Google Play.
 
 ## Screenshots
 
