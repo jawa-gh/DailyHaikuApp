@@ -70,8 +70,9 @@ yarn-error.*
 .env
 .env*.local
 
-# local markdown files
+# local markdown files (CLAUDE.local.md, SETUP.local.md — private notes/secrets)
 *.local.md
+SETUP.local.md
 
 # typescript
 *.tsbuildinfo
