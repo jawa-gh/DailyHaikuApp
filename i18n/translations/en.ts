@@ -168,7 +168,6 @@ const en = {
     bestValue: 'BEST VALUE',
     starter: 'STARTER',
     purchaseFor: 'Purchase for',
-    disclaimer: 'This is a simulated purchase for demo purposes.\nNo real payment will be processed.',
     purchaseFailed: 'Purchase Failed',
     purchaseFailedMessage: 'Something went wrong. Please try again.',
     creditsArrivingTitle: 'Almost there',

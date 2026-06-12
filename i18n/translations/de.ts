@@ -170,7 +170,6 @@ const de: Translations = {
     bestValue: 'BESTER WERT',
     starter: 'STARTER',
     purchaseFor: 'Kaufen für',
-    disclaimer: 'Dies ist ein simulierter Kauf zu Demozwecken.\nEs wird keine echte Zahlung verarbeitet.',
     purchaseFailed: 'Kauf fehlgeschlagen',
     purchaseFailedMessage: 'Etwas ist schiefgelaufen. Bitte versuche es erneut.',
     creditsArrivingTitle: 'Fast geschafft',
