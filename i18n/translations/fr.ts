@@ -170,7 +170,6 @@ const fr: Translations = {
     bestValue: 'MEILLEUR PRIX',
     starter: 'DÉCOUVERTE',
     purchaseFor: 'Acheter pour',
-    disclaimer: "Ceci est un achat simulé à des fins de démonstration.\nAucun paiement réel ne sera traité.",
     purchaseFailed: "Échec de l'achat",
     purchaseFailedMessage: "Quelque chose s'est mal passé. Veuillez réessayer.",
     creditsArrivingTitle: 'Presque prêt',
