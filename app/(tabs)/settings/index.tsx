@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Bell, Clock, ChevronRight, LogOut, User, Sparkles, CreditCard, BookOpen, Feather, Hash, Globe, Shield, FileText, Trash2 } from 'lucide-react-native';
+import { Bell, Clock, ChevronRight, LogOut, User, Sparkles, CreditCard, Hash, Globe, Shield, FileText, Trash2 } from 'lucide-react-native';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Constants from 'expo-constants';
@@ -403,70 +403,6 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t.settings.whatIsHaiku}</Text>
-          <View style={styles.card}>
-            <View style={styles.infoBlock}>
-              <View style={styles.infoIconRow}>
-                <View style={[styles.iconWrap, { backgroundColor: '#1E2A36' }]}>
-                  <BookOpen size={18} color={Colors.text} />
-                </View>
-                <Text style={styles.infoTitle}>{t.settings.japaneseArtForm}</Text>
-              </View>
-              <Text style={styles.infoDescription}>
-                {t.settings.haikuDescription}
-              </Text>
-            </View>
-            <View style={styles.separator} />
-            <View style={styles.infoBlock}>
-              <View style={styles.infoIconRow}>
-                <View style={[styles.iconWrap, { backgroundColor: Colors.sageLight }]}>
-                  <Hash size={18} color={Colors.sage} />
-                </View>
-                <Text style={styles.infoTitle}>{t.settings.syllableStructure}</Text>
-              </View>
-              <Text style={styles.infoDescription}>
-                {t.settings.syllableDescription}
-              </Text>
-              <View style={styles.syllableRows}>
-                <View style={styles.syllableRow}>
-                  <View style={styles.syllableBadge}>
-                    <Text style={styles.syllableBadgeText}>5</Text>
-                  </View>
-                  <Text style={styles.syllableLabel}>{t.settings.syllablesFirstLine}</Text>
-                </View>
-                <View style={styles.syllableRow}>
-                  <View style={[styles.syllableBadge, { backgroundColor: Colors.accent }]}>
-                    <Text style={styles.syllableBadgeText}>7</Text>
-                  </View>
-                  <Text style={styles.syllableLabel}>{t.settings.syllablesSecondLine}</Text>
-                </View>
-                <View style={styles.syllableRow}>
-                  <View style={styles.syllableBadge}>
-                    <Text style={styles.syllableBadgeText}>5</Text>
-                  </View>
-                  <Text style={styles.syllableLabel}>{t.settings.syllablesThirdLine}</Text>
-                </View>
-              </View>
-            </View>
-            <View style={styles.separator} />
-            <View style={styles.infoBlock}>
-              <View style={styles.infoIconRow}>
-                <View style={[styles.iconWrap, { backgroundColor: Colors.accentLight }]}>
-                  <Feather size={18} color={Colors.accent} />
-                </View>
-                <Text style={styles.infoTitle}>{t.settings.example}</Text>
-              </View>
-              <View style={styles.exampleCard}>
-                <Text style={styles.exampleLine}>{t.settings.exampleLine1}</Text>
-                <Text style={styles.exampleLine}>{t.settings.exampleLine2}</Text>
-                <Text style={styles.exampleLine}>{t.settings.exampleLine3}</Text>
-                <Text style={styles.exampleAuthor}>{t.settings.exampleAuthor}</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t.settings.about}</Text>
           <View style={[styles.card, styles.aboutDescriptionCard]}>
             {(() => {
@@ -817,73 +753,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700' as const,
     color: Colors.white,
-  },
-  infoBlock: {
-    padding: 16,
-  },
-  infoIconRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 10,
-  },
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-    color: Colors.text,
-  },
-  infoDescription: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    lineHeight: 21,
-    marginLeft: 48,
-  },
-  syllableRows: {
-    marginLeft: 48,
-    marginTop: 12,
-    gap: 8,
-  },
-  syllableRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  syllableBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: Colors.ink,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  syllableBadgeText: {
-    fontSize: 13,
-    fontWeight: '700' as const,
-    color: Colors.white,
-  },
-  syllableLabel: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-  },
-  exampleCard: {
-    marginLeft: 48,
-    backgroundColor: Colors.background,
-    borderRadius: 12,
-    padding: 16,
-    gap: 4,
-  },
-  exampleLine: {
-    fontSize: 15,
-    fontStyle: 'italic' as const,
-    color: Colors.ink,
-    lineHeight: 24,
-    textAlign: 'center',
-  },
-  exampleAuthor: {
-    fontSize: 12,
-    color: Colors.textMuted,
-    textAlign: 'center',
-    marginTop: 8,
   },
   footer: {
     textAlign: 'center',

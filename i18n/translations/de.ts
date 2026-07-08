@@ -32,6 +32,7 @@ const de: Translations = {
     customHint: 'Beschreibe ein Thema, eine Stimmung oder Idee für dein Haiku',
     customPlaceholder: 'z.B. Morgenkaffee, Kindheitserinnerungen...',
     generateHaiku: 'Haiku erstellen',
+    whatIsHaiku: 'Was ist ein Haiku?',
   },
   archive: {
     title: 'Archiv',

@@ -13,9 +13,11 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Pressable,
+  LayoutAnimation,
+  UIManager,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Heart, RefreshCw, Share2, Lock, Sparkles, Palette, X, ChevronRight, ImageIcon, PenLine, Feather } from 'lucide-react-native';
+import { Heart, RefreshCw, Share2, Lock, Sparkles, Palette, X, ChevronRight, BookOpen, ImageIcon, PenLine, Feather } from 'lucide-react-native';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
@@ -26,11 +28,19 @@ import { useLanguage } from '@/providers/LanguageProvider';
 import { SEASON_THEMES, SELECTABLE_THEMES, formatDate, getTodayDateString } from '@/constants/haiku-themes';
 import { HAIKU_CREDIT_COST } from '@/types/auth';
 import { isInsufficientCredits, isNotAuthenticated } from '@/utils/errors';
+import HaikuExplainer from '@/components/HaikuExplainer';
 
 // Caps the readable content column so it doesn't stretch edge-to-edge on wide
 // canvases (iPad / iPadOS 26 resizable windows). Larger than any phone width,
 // so it's a no-op on phones and only kicks in on tablets.
 const CONTENT_MAX_WIDTH = 480;
+
+// LayoutAnimation drives the expand/collapse of the "What is a haiku?" section.
+// On old-architecture Android it must be explicitly enabled; the guard makes
+// this a no-op on the New Architecture (where the method is absent) and iOS.
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 export default function TodayScreen() {
   const insets = useSafeAreaInsets();
@@ -51,6 +61,7 @@ export default function TodayScreen() {
   const [selectedTheme, setSelectedTheme] = useState<string | null>(null);
   const [customTopic, setCustomTopic] = useState<string>('');
   const [isCustomMode, setIsCustomMode] = useState<boolean>(false);
+  const [showHaikuInfo, setShowHaikuInfo] = useState<boolean>(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -59,6 +70,25 @@ export default function TodayScreen() {
   const line3Anim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const bannerAnim = useRef(new Animated.Value(0)).current;
+  // Drives the "What is a haiku?" chevron rotation (0 = ▸ collapsed, 1 = ▾).
+  const infoChevronAnim = useRef(new Animated.Value(0)).current;
+
+  const toggleHaikuInfo = useCallback(() => {
+    if (Platform.OS !== 'web') {
+      Haptics.selectionAsync();
+    }
+    // Animate the height change as the explainer mounts/unmounts.
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setShowHaikuInfo((prev) => {
+      const next = !prev;
+      Animated.timing(infoChevronAnim, {
+        toValue: next ? 1 : 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+      return next;
+    });
+  }, [infoChevronAnim]);
 
   // Guards the mount-time auto-generate so it fires at most once per
   // authenticated session. A failing call toggles `isGenerating` true→false,
@@ -328,6 +358,13 @@ export default function TodayScreen() {
 
   const themeInfo = todayHaiku ? SEASON_THEMES[todayHaiku.theme] : null;
 
+  // Show the "What is a haiku?" explainer in every state except the initial
+  // loading spinner — including the signed-out and empty states, so newcomers
+  // can learn what a haiku is before signing in. (It used to live in Settings,
+  // reachable to everyone; gating it on `todayHaiku` alone would hide it from
+  // logged-out users entirely.)
+  const showHaikuExplainer = !((isLoading || isGenerating) && !todayHaiku);
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
@@ -534,6 +571,42 @@ export default function TodayScreen() {
               </TouchableOpacity>
             ) : null}
           </Animated.View>
+        )}
+
+        {showHaikuExplainer && (
+          <View style={styles.infoSection}>
+            <TouchableOpacity
+              style={styles.infoToggle}
+              onPress={toggleHaikuInfo}
+              activeOpacity={0.7}
+              testID="haiku-info-toggle"
+            >
+              <View style={styles.infoToggleLeft}>
+                <BookOpen size={16} color={Colors.sage} />
+                <Text style={styles.infoToggleLabel}>{t.today.whatIsHaiku}</Text>
+              </View>
+              <Animated.View
+                style={{
+                  transform: [
+                    {
+                      rotate: infoChevronAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0deg', '90deg'],
+                      }),
+                    },
+                  ],
+                }}
+              >
+                <ChevronRight size={18} color={Colors.textMuted} />
+              </Animated.View>
+            </TouchableOpacity>
+
+            {showHaikuInfo && (
+              <View style={styles.infoContent}>
+                <HaikuExplainer />
+              </View>
+            )}
+          </View>
         )}
       </ScrollView>
 
@@ -992,6 +1065,34 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 13,
     fontWeight: '600' as const,
+  },
+  infoSection: {
+    marginTop: 20,
+    backgroundColor: Colors.card,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  infoToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  infoToggleLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  infoToggleLabel: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: Colors.text,
+  },
+  infoContent: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.divider,
+    paddingBottom: 8,
   },
   actions: {
     flexDirection: 'row',

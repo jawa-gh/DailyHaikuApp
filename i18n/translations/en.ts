@@ -30,6 +30,7 @@ const en = {
     customHint: 'Describe any topic, mood, or idea for your haiku',
     customPlaceholder: 'e.g. morning coffee, childhood memories...',
     generateHaiku: 'Generate Haiku',
+    whatIsHaiku: 'What is a haiku?',
   },
   archive: {
     title: 'Archive',
