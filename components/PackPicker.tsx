@@ -1,9 +1,8 @@
 // Horizontal chip row for picking a poet voice or an art style.
 //
 // Shared by the topic sheet on Today and the artwork screen, which need the
-// same control over two different pack lists. Locked chips are rendered but
-// not selectable — they route to /purchase instead. Nothing is locked while
-// STYLE_PACKS_REQUIRE_PURCHASE is false; see `constants/packs.ts`.
+// same control over two different pack lists. Packs are free — there is no
+// locked state; see `constants/packs.ts`.
 
 import React from 'react';
 import {
@@ -14,12 +13,9 @@ import {
   StyleSheet,
   Platform,
 } from 'react-native';
-import { Lock } from 'lucide-react-native';
-import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
-import { usePurchases } from '@/providers/PurchaseProvider';
-import { isPackUnlocked, type Pack } from '@/constants/packs';
+import { type Pack } from '@/constants/packs';
 
 interface PackPickerProps<Id extends string> {
   /** Section label shown above the row, e.g. "Poet voice". */
@@ -40,8 +36,6 @@ export default function PackPicker<Id extends string>({
   getLabel,
   testIDPrefix,
 }: PackPickerProps<Id>) {
-  const { hasStylePacks } = usePurchases();
-
   return (
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
@@ -52,41 +46,24 @@ export default function PackPicker<Id extends string>({
         contentContainerStyle={styles.row}
       >
         {packs.map((pack) => {
-          const unlocked = isPackUnlocked(pack, hasStylePacks);
           const isSelected = pack.id === selected;
 
           return (
             <TouchableOpacity
               key={pack.id}
-              style={[
-                styles.chip,
-                isSelected && styles.chipSelected,
-                !unlocked && styles.chipLocked,
-              ]}
+              style={[styles.chip, isSelected && styles.chipSelected]}
               onPress={() => {
                 if (Platform.OS !== 'web') {
                   Haptics.selectionAsync();
-                }
-                if (!unlocked) {
-                  router.push('/purchase');
-                  return;
                 }
                 onSelect(pack.id);
               }}
               activeOpacity={0.7}
               testID={`${testIDPrefix}-${pack.id}`}
             >
-              {unlocked ? (
-                <Text style={styles.emoji}>{pack.emoji}</Text>
-              ) : (
-                <Lock size={13} color={Colors.textMuted} />
-              )}
+              <Text style={styles.emoji}>{pack.emoji}</Text>
               <Text
-                style={[
-                  styles.chipLabel,
-                  isSelected && styles.chipLabelSelected,
-                  !unlocked && styles.chipLabelLocked,
-                ]}
+                style={[styles.chipLabel, isSelected && styles.chipLabelSelected]}
               >
                 {getLabel(pack.id)}
               </Text>
@@ -151,9 +128,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.sage,
     backgroundColor: Colors.sageLight,
   },
-  chipLocked: {
-    opacity: 0.55,
-  },
   emoji: {
     fontSize: 14,
   },
@@ -165,8 +139,5 @@ const styles = StyleSheet.create({
   chipLabelSelected: {
     color: Colors.ink,
     fontWeight: '600' as const,
-  },
-  chipLabelLocked: {
-    color: Colors.textMuted,
   },
 });

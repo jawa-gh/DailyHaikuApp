@@ -32,7 +32,6 @@ const de: Translations = {
     customHint: 'Beschreibe ein Thema, eine Stimmung oder Idee für dein Haiku',
     customPlaceholder: 'z.B. Morgenkaffee, Kindheitserinnerungen...',
     generateHaiku: 'Haiku erstellen',
-    poetVoice: 'Dichterstimme',
     whatIsHaiku: 'Was ist ein Haiku?',
   },
   archive: {
@@ -193,14 +192,6 @@ const de: Translations = {
     title: 'Hoppla!',
     message: 'Diese Seite existiert nicht.',
     returnHome: 'Zurück zu deinem Haiku',
-  },
-  voices: {
-    classic: 'Klassisch',
-    modern: 'Modern',
-    basho: 'Bashō',
-    issa: 'Issa',
-    buson: 'Buson',
-    minimal: 'Minimal',
   },
   artStyles: {
     sumi: 'Tuschmalerei',

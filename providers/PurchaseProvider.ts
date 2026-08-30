@@ -9,7 +9,6 @@ import Purchases, {
 import { doc, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '@/providers/AuthProvider';
 import { db } from '@/lib/firebase';
-import { STYLE_PACKS_ENTITLEMENT } from '@/constants/packs';
 
 // RevenueCat *public* SDK keys, configured per platform.
 //
@@ -314,20 +313,6 @@ export const [PurchaseProvider, usePurchases] = createContextHook(() => {
     );
   }, [customerInfo]);
 
-  // True once the user owns the voice / art style packs. Reads a RevenueCat
-  // entitlement rather than a product id, so the packs can later be sold
-  // standalone or bundled into a subscription without touching this code.
-  //
-  // Stays false until that entitlement exists in the RevenueCat dashboard —
-  // harmless, because pack gating is off by default. See
-  // STYLE_PACKS_REQUIRE_PURCHASE in `constants/packs.ts`.
-  const hasStylePacks = useMemo(() => {
-    return (
-      customerInfo?.entitlements?.active?.[STYLE_PACKS_ENTITLEMENT] !==
-      undefined
-    );
-  }, [customerInfo]);
-
   return {
     isReady,
     packages,
@@ -341,7 +326,6 @@ export const [PurchaseProvider, usePurchases] = createContextHook(() => {
     canGenerate,
     needsCredits,
     hasStarterPack,
-    hasStylePacks,
     purchasePackage,
     restorePurchases,
     // spendCredit / markDailyFreeUsed are intentionally NOT exposed — those

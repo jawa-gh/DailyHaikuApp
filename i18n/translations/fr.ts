@@ -32,7 +32,6 @@ const fr: Translations = {
     customHint: 'Décrivez un thème, une ambiance ou une idée pour votre haiku',
     customPlaceholder: 'ex. café du matin, souvenirs d\'enfance...',
     generateHaiku: 'Générer un Haiku',
-    poetVoice: 'Voix du poète',
     whatIsHaiku: "Qu'est-ce qu'un haiku ?",
   },
   archive: {
@@ -193,14 +192,6 @@ const fr: Translations = {
     title: 'Oups !',
     message: "Cette page n'existe pas.",
     returnHome: 'Retour à votre haiku',
-  },
-  voices: {
-    classic: 'Classique',
-    modern: 'Moderne',
-    basho: 'Bashō',
-    issa: 'Issa',
-    buson: 'Buson',
-    minimal: 'Minimaliste',
   },
   artStyles: {
     sumi: "Lavis d'encre",

@@ -4,7 +4,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
 import { File, Paths } from 'expo-file-system';
 import { Haiku, HaikuSettings, DEFAULT_SETTINGS } from '@/types/haiku';
-import type { PoetVoiceId } from '@/constants/packs';
 import { getTodayDateString, getRandomTheme, getCurrentSeason } from '@/constants/haiku-themes';
 import { generateHaiku } from '@/utils/haiku-generator';
 import { scheduleDailyNotification, cancelAllNotifications } from '@/utils/notifications';
@@ -93,7 +92,7 @@ export const [HaikuProvider, useHaikus] = createContextHook(() => {
   }, [haikus]);
 
   const generateMutation = useMutation({
-    mutationFn: async ({ forceNew, selectedTheme, customTopic, voice }: { forceNew?: boolean; selectedTheme?: string; customTopic?: string; voice?: PoetVoiceId } = {}) => {
+    mutationFn: async ({ forceNew, selectedTheme, customTopic }: { forceNew?: boolean; selectedTheme?: string; customTopic?: string } = {}) => {
       const today = getTodayDateString();
       if (!forceNew && todayHaiku) {
         return todayHaiku;
@@ -117,17 +116,7 @@ export const [HaikuProvider, useHaikus] = createContextHook(() => {
       // never mutates credit state directly anymore.
       // Language is forwarded so the haiku is generated in the user's UI
       // language with calibrated examples.
-      //
-      // An explicit `voice` (the topic sheet's picker) wins; otherwise fall
-      // back to the last one the user settled on. Passing it explicitly
-      // matters because the sheet generates immediately after selecting, and
-      // the persisted settings value may not have propagated into this
-      // closure yet.
-      const lines = await generateHaiku(
-        theme,
-        language,
-        voice ?? settings.poetVoice,
-      );
+      const lines = await generateHaiku(theme, language);
 
       const newHaiku: Haiku = {
         id: `${today}-${Date.now()}`,
@@ -239,8 +228,8 @@ export const [HaikuProvider, useHaikus] = createContextHook(() => {
     settings,
     isLoading: haikusQuery.isLoading || settingsQuery.isLoading,
     isGenerating: generateMutation.isPending,
-    generateTodayHaiku: (forceNew?: boolean, selectedTheme?: string, customTopic?: string, voice?: PoetVoiceId) =>
-      generateMutation.mutateAsync({ forceNew, selectedTheme, customTopic, voice }),
+    generateTodayHaiku: (forceNew?: boolean, selectedTheme?: string, customTopic?: string) =>
+      generateMutation.mutateAsync({ forceNew, selectedTheme, customTopic }),
     generateError: generateMutation.error?.message ?? null,
     toggleFavorite,
     saveImageToHaiku,

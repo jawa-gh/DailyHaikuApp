@@ -30,7 +30,6 @@ const en = {
     customHint: 'Describe any topic, mood, or idea for your haiku',
     customPlaceholder: 'e.g. morning coffee, childhood memories...',
     generateHaiku: 'Generate Haiku',
-    poetVoice: 'Poet voice',
     whatIsHaiku: 'What is a haiku?',
   },
   archive: {
@@ -191,14 +190,6 @@ const en = {
     title: 'Oops!',
     message: "This page doesn't exist.",
     returnHome: 'Return to your haiku',
-  },
-  voices: {
-    classic: 'Classic',
-    modern: 'Modern',
-    basho: 'Bashō',
-    issa: 'Issa',
-    buson: 'Buson',
-    minimal: 'Minimal',
   },
   artStyles: {
     sumi: 'Ink wash',

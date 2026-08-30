@@ -7,9 +7,7 @@
 //   - free slot used       → gpt-4o      (1 credit deducted)
 //
 // `language` is forwarded to the server so the haiku is composed in the
-// user's UI language with examples calibrated for that language. `voice`
-// selects a poet voice pack; the server validates it and falls back to the
-// classic voice if it doesn't recognise the id.
+// user's UI language with examples calibrated for that language.
 //
 // Falls back to a curated haiku when the call fails (offline, function down,
 // auth lapsed) so the app never blocks on a network error.
@@ -23,7 +21,6 @@ import {
   isUnauthenticatedCode,
 } from '@/utils/errors';
 import type { Language } from '@/i18n';
-import { DEFAULT_POET_VOICE, type PoetVoiceId } from '@/constants/packs';
 
 interface GenerateHaikuResponse {
   line1: string;
@@ -33,7 +30,7 @@ interface GenerateHaikuResponse {
 }
 
 const callGenerateHaiku = httpsCallable<
-  { theme: string; language: Language; voice: PoetVoiceId },
+  { theme: string; language: Language },
   GenerateHaikuResponse
 >(functions, 'generateHaiku');
 
@@ -64,11 +61,10 @@ async function ensureFreshIdToken(): Promise<void> {
 export async function generateHaiku(
   theme: string,
   language: Language = 'en',
-  voice: PoetVoiceId = DEFAULT_POET_VOICE,
 ): Promise<[string, string, string]> {
   try {
     await ensureFreshIdToken();
-    const { data } = await callGenerateHaiku({ theme, language, voice });
+    const { data } = await callGenerateHaiku({ theme, language });
     if (
       typeof data?.line1 !== 'string' ||
       typeof data?.line2 !== 'string' ||
