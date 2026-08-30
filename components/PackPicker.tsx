@@ -48,6 +48,7 @@ export default function PackPicker<Id extends string>({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.scroll}
         contentContainerStyle={styles.row}
       >
         {packs.map((pack) => {
@@ -97,9 +98,28 @@ export default function PackPicker<Id extends string>({
   );
 }
 
+const CHIP_HEIGHT = 34;
+
 const styles = StyleSheet.create({
+  // This row lives inside the topic sheet, directly above the themes list —
+  // the sheet's height budget is tight and has caused an App Store rejection
+  // before. So it is pinned to an exact height and takes no part in the flex
+  // distribution: it can neither grow into the themes list's space nor shrink
+  // when the sheet is squeezed on a short iPad window.
+  //
+  // The pinning matters because RN's ScrollView base style is
+  // `flexGrow: 1, flexShrink: 1` (ScrollView.js → styles.baseHorizontal), so
+  // a horizontal ScrollView dropped into a column expands vertically unless
+  // told not to.
   container: {
     marginBottom: 16,
+    flexGrow: 0,
+    flexShrink: 0,
+  },
+  scroll: {
+    height: CHIP_HEIGHT,
+    flexGrow: 0,
+    flexShrink: 0,
   },
   label: {
     fontSize: 12,
@@ -120,7 +140,9 @@ const styles = StyleSheet.create({
     gap: 6,
     backgroundColor: Colors.card,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    // Explicit height rather than vertical padding, so the row's fixed height
+    // above always matches the chips exactly.
+    height: CHIP_HEIGHT,
     borderRadius: 12,
     borderWidth: 1.5,
     borderColor: Colors.divider,

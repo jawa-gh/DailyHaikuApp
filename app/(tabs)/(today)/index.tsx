@@ -64,9 +64,9 @@ export default function TodayScreen() {
   const [customTopic, setCustomTopic] = useState<string>('');
   const [isCustomMode, setIsCustomMode] = useState<boolean>(false);
   const [showHaikuInfo, setShowHaikuInfo] = useState<boolean>(false);
-  // Voice for the next generation. Seeded from the persisted preference each
-  // time the sheet opens, and written back on generate so the plain refresh
-  // button keeps using whatever the user last chose.
+  // Voice for the next generation. Seeded from the persisted preference when
+  // the sheet opens and written back on generate, so the plain refresh button
+  // and the mount-time auto-generate reuse the last choice.
   const [selectedVoice, setSelectedVoice] = useState<PoetVoiceId>(settings.poetVoice);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -250,9 +250,9 @@ export default function TodayScreen() {
     setSelectedTheme(null);
     setCustomTopic('');
     setIsCustomMode(customMode);
-    // Seed from the persisted preference here rather than in useState — the
-    // settings load from AsyncStorage after first render, so the initial
-    // state value is stale by the time the sheet is first opened.
+    // Seed here rather than in useState: settings load from AsyncStorage after
+    // first render, so the initial state value is stale by the time the sheet
+    // is first opened.
     setSelectedVoice(settings.poetVoice);
     setTopicModalVisible(true);
   }, [isAuthenticated, canGenerate, needsCredits, settings.poetVoice]);
@@ -290,9 +290,9 @@ export default function TodayScreen() {
     try {
       const topic = isCustomMode ? customTopic.trim() : undefined;
       const theme = !isCustomMode && selectedTheme ? selectedTheme : undefined;
-      // Remember the voice for later generations, and pass it explicitly for
-      // this one — updateSettings is async and wouldn't reach the provider's
-      // mutation closure in time.
+      // Remember the voice, and pass it explicitly for this generation —
+      // updateSettings is async and wouldn't reach the provider's mutation
+      // closure in time.
       if (selectedVoice !== settings.poetVoice) {
         void updateSettings({ poetVoice: selectedVoice });
       }
@@ -1237,10 +1237,30 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   themesScroll: {
-    // flex: 1 (was maxHeight: 280) lets the themes list shrink/grow to fit
-    // the modal's remaining space, so the Generate button below it stays on
-    // screen even when the window is short (iPad split view / Stage Manager).
-    flex: 1,
+    // Goal (unchanged): let the themes list shrink to fit so the Generate
+    // button below it stays on screen on short windows (iPad split view /
+    // Stage Manager).
+    //
+    // This was `flex: 1`, which is `flexBasis: 0` — the item starts at zero
+    // height and is supposed to grow into the container's *free space*. But
+    // `modalSheet` has `maxHeight: '90%'` and no definite height, so it is
+    // sized by its content; there is no resolved free space to distribute and
+    // the list collapsed to nothing. That's why no themes were visible, why
+    // none could be selected, and so why Generate stayed disabled. (It looked
+    // like it fixed the original iPad overlap only because it deleted the
+    // content that was overlapping.)
+    //
+    // `flexBasis: 'auto'` makes the base size the content itself, so the list
+    // is never dependent on free-space distribution; `flexShrink: 1` still
+    // lets the 90% clamp squeeze it, which is what keeps Generate on screen.
+    // `minHeight` is belt-and-braces: whatever the flex maths does, Yoga
+    // always honours it, so the grid can never be invisible again. Keep it
+    // well under the space a short iPad window leaves (~145pt) or it will
+    // push Generate off-screen — the original rejection.
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 'auto',
+    minHeight: 100,
   },
   themesGrid: {
     flexDirection: 'row',
