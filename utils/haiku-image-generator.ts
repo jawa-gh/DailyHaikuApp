@@ -10,6 +10,7 @@ import {
   isFailedPrecondition,
   isUnauthenticatedCode,
 } from '@/utils/errors';
+import { DEFAULT_ART_STYLE, type ArtStyleId } from '@/constants/packs';
 
 export interface GeneratedImage {
   base64Data: string;
@@ -17,19 +18,22 @@ export interface GeneratedImage {
 }
 
 const callGenerateImage = httpsCallable<
-  { lines: [string, string, string]; theme: string },
+  { lines: [string, string, string]; theme: string; style: ArtStyleId },
   GeneratedImage
 >(functions, 'generateHaikuImage');
 
 export async function generateHaikuImage({
   lines,
   theme,
+  style = DEFAULT_ART_STYLE,
 }: {
   lines: [string, string, string];
   theme: string;
+  /** Art style pack. Validated server-side; unknown ids fall back to sumi-e. */
+  style?: ArtStyleId;
 }): Promise<GeneratedImage> {
   try {
-    const { data } = await callGenerateImage({ lines, theme });
+    const { data } = await callGenerateImage({ lines, theme, style });
     if (typeof data?.base64Data !== 'string' || data.base64Data.length === 0) {
       throw new Error('Image generation returned no data');
     }

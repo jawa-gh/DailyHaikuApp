@@ -34,6 +34,7 @@ export default function PurchaseScreen() {
     offeringsStatus,
     offeringsError,
     reloadOfferings,
+    restorePurchases,
   } = usePurchases();
   const { t } = useLanguage();
 
@@ -74,6 +75,7 @@ export default function PurchaseScreen() {
   // call and the subsequent webhook wait. Disables the button and keeps the
   // spinner visible until credits actually arrive (or we time out).
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
 
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const checkAnim = useRef(new Animated.Value(0)).current;
@@ -145,6 +147,49 @@ export default function PurchaseScreen() {
       Alert.alert(t.purchase.purchaseFailed, t.purchase.purchaseFailedMessage);
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  // App Store guideline 3.1.1 requires a restore path because the starter
+  // pack is a non-consumable. Consumable credits are deliberately not part of
+  // this — see restorePurchases() in PurchaseProvider for why.
+  const handleRestore = async () => {
+    if (!isAuthenticated) {
+      // Entitlements are keyed on the Firebase uid we pass to Purchases.logIn,
+      // so there's nothing meaningful to restore onto an anonymous session.
+      router.replace('/auth');
+      return;
+    }
+
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+
+    setIsRestoring(true);
+    try {
+      const info = await restorePurchases();
+      const foundSomething =
+        (info?.allPurchasedProductIdentifiers?.length ?? 0) > 0;
+
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(
+          foundSomething
+            ? Haptics.NotificationFeedbackType.Success
+            : Haptics.NotificationFeedbackType.Warning,
+        );
+      }
+
+      Alert.alert(
+        foundSomething ? t.purchase.restored : t.purchase.nothingToRestore,
+        foundSomething
+          ? t.purchase.restoredMessage
+          : t.purchase.nothingToRestoreMessage,
+      );
+    } catch (err) {
+      console.error('Restore failed:', err);
+      Alert.alert(t.purchase.restoreFailed, t.purchase.restoreFailedMessage);
+    } finally {
+      setIsRestoring(false);
     }
   };
 
@@ -295,6 +340,21 @@ export default function PurchaseScreen() {
               </Animated.View>
             </TouchableOpacity>
           </Animated.View>
+
+          <TouchableOpacity
+            style={styles.restoreButton}
+            onPress={handleRestore}
+            disabled={isRestoring || isPurchasing || isProcessing}
+            activeOpacity={0.7}
+            hitSlop={8}
+            testID="restore-purchases"
+          >
+            {isRestoring ? (
+              <ActivityIndicator size="small" color={Colors.textSecondary} />
+            ) : (
+              <Text style={styles.restoreText}>{t.purchase.restorePurchases}</Text>
+            )}
+          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -489,6 +549,19 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     gap: 16,
   },
+  // Deliberately quiet — required by App Store review, but it shouldn't
+  // compete with the purchase button. Fixed height so swapping the label for
+  // the spinner doesn't shift the layout.
+  restoreButton: {
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  restoreText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: Colors.textSecondary,
+  },
   purchaseButton: {
     backgroundColor: Colors.ink,
     borderRadius: 16,
@@ -512,7 +585,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   purchaseText: {
-    color: Colors.white,
+    color: Colors.blackLight,
     fontSize: 17,
     fontWeight: '600' as const,
   },

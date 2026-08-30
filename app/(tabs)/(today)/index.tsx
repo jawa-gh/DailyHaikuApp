@@ -29,6 +29,8 @@ import { SEASON_THEMES, SELECTABLE_THEMES, formatDate, getTodayDateString } from
 import { HAIKU_CREDIT_COST } from '@/types/auth';
 import { isInsufficientCredits, isNotAuthenticated } from '@/utils/errors';
 import HaikuExplainer from '@/components/HaikuExplainer';
+import PackPicker from '@/components/PackPicker';
+import { POET_VOICES, type PoetVoiceId } from '@/constants/packs';
 
 // Caps the readable content column so it doesn't stretch edge-to-edge on wide
 // canvases (iPad / iPadOS 26 resizable windows). Larger than any phone width,
@@ -44,7 +46,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 export default function TodayScreen() {
   const insets = useSafeAreaInsets();
-  const { todayHaiku, isGenerating, isLoading, generateTodayHaiku, toggleFavorite } = useHaikus();
+  const { todayHaiku, isGenerating, isLoading, generateTodayHaiku, toggleFavorite, settings, updateSettings } = useHaikus();
   const { isAuthenticated, needsSignUp } = useAuth();
   const { canGenerate, canGenerateForFree, needsCredits, credits, packages } = usePurchases();
 
@@ -62,6 +64,10 @@ export default function TodayScreen() {
   const [customTopic, setCustomTopic] = useState<string>('');
   const [isCustomMode, setIsCustomMode] = useState<boolean>(false);
   const [showHaikuInfo, setShowHaikuInfo] = useState<boolean>(false);
+  // Voice for the next generation. Seeded from the persisted preference each
+  // time the sheet opens, and written back on generate so the plain refresh
+  // button keeps using whatever the user last chose.
+  const [selectedVoice, setSelectedVoice] = useState<PoetVoiceId>(settings.poetVoice);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -244,8 +250,12 @@ export default function TodayScreen() {
     setSelectedTheme(null);
     setCustomTopic('');
     setIsCustomMode(customMode);
+    // Seed from the persisted preference here rather than in useState — the
+    // settings load from AsyncStorage after first render, so the initial
+    // state value is stale by the time the sheet is first opened.
+    setSelectedVoice(settings.poetVoice);
     setTopicModalVisible(true);
-  }, [isAuthenticated, canGenerate, needsCredits]);
+  }, [isAuthenticated, canGenerate, needsCredits, settings.poetVoice]);
 
   const handleOpenTopicPicker = useCallback(() => {
     openTopicModal(false);
@@ -280,7 +290,13 @@ export default function TodayScreen() {
     try {
       const topic = isCustomMode ? customTopic.trim() : undefined;
       const theme = !isCustomMode && selectedTheme ? selectedTheme : undefined;
-      await generateTodayHaiku(true, theme, topic);
+      // Remember the voice for later generations, and pass it explicitly for
+      // this one — updateSettings is async and wouldn't reach the provider's
+      // mutation closure in time.
+      if (selectedVoice !== settings.poetVoice) {
+        void updateSettings({ poetVoice: selectedVoice });
+      }
+      await generateTodayHaiku(true, theme, topic, selectedVoice);
     } catch (error) {
       if (isNotAuthenticated(error)) {
         router.push('/auth');
@@ -292,7 +308,7 @@ export default function TodayScreen() {
       }
       console.error('Failed to generate haiku with topic:', error);
     }
-  }, [canGenerate, isCustomMode, customTopic, selectedTheme, scaleAnim, generateTodayHaiku]);
+  }, [canGenerate, isCustomMode, customTopic, selectedTheme, selectedVoice, settings.poetVoice, updateSettings, scaleAnim, generateTodayHaiku]);
 
   const handleToggleFavorite = () => {
     if (!todayHaiku) return;
@@ -354,6 +370,10 @@ export default function TodayScreen() {
 
   const getThemeLabel = (key: string): string => {
     return (t.themes as Record<string, string>)[key] || key;
+  };
+
+  const getVoiceLabel = (key: PoetVoiceId): string => {
+    return (t.voices as Record<string, string>)[key] || key;
   };
 
   const themeInfo = todayHaiku ? SEASON_THEMES[todayHaiku.theme] : null;
@@ -705,6 +725,15 @@ export default function TodayScreen() {
                 <X size={22} color={Colors.textSecondary} />
               </TouchableOpacity>
             </View>
+
+            <PackPicker
+              label={t.today.poetVoice}
+              packs={POET_VOICES}
+              selected={selectedVoice}
+              onSelect={setSelectedVoice}
+              getLabel={getVoiceLabel}
+              testIDPrefix="voice-chip"
+            />
 
             <View style={styles.modeToggle}>
               <TouchableOpacity

@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
   appleButtonText: {
     fontSize: 16,
     fontWeight: '600' as const,
-    color: Colors.white,
+    color: Colors.blackLight,
   },
   googleButton: {
     backgroundColor: Colors.white,
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
   googleButtonText: {
     fontSize: 16,
     fontWeight: '600' as const,
-    color: Colors.text,
+    color: Colors.blackLight,
   },
   benefitsSection: {
     backgroundColor: Colors.card,

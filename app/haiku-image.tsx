@@ -26,6 +26,8 @@ import { useLanguage } from '@/providers/LanguageProvider';
 import { IMAGE_CREDIT_COST } from '@/types/auth';
 import { generateHaikuImage } from '@/utils/haiku-image-generator';
 import { isInsufficientCredits, isNotAuthenticated } from '@/utils/errors';
+import PackPicker from '@/components/PackPicker';
+import { ART_STYLES, type ArtStyleId } from '@/constants/packs';
 
 // Caps the content column on wide canvases (iPad / iPadOS 26 resizable
 // windows). Larger than any phone width, so it's a no-op on phones.
@@ -35,13 +37,14 @@ export default function HaikuImageScreen() {
   const insets = useSafeAreaInsets();
   const { isAuthenticated } = useAuth();
   const { credits, isPurchasing } = usePurchases();
-  const { saveImageToHaiku } = useHaikus();
+  const { saveImageToHaiku, settings, updateSettings } = useHaikus();
   const params = useLocalSearchParams<{ line1: string; line2: string; line3: string; theme: string; haikuId: string }>();
 
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [imageMimeType, setImageMimeType] = useState<string>('image/png');
   const [hasPurchased, setHasPurchased] = useState<boolean>(false);
   const [imageReady, setImageReady] = useState<boolean>(false);
+  const [selectedStyle, setSelectedStyle] = useState<ArtStyleId>(settings.artStyle);
   const { t } = useLanguage();
 
   const scrollViewRef = useRef<ScrollView>(null);
@@ -53,6 +56,29 @@ export default function HaikuImageScreen() {
 
   const themeLabel = params.theme ?? 'nature';
 
+  // Settings arrive from AsyncStorage a beat after first render, so the
+  // useState seed above can be the default rather than the user's choice.
+  // Re-seed when they land — but never overwrite a selection already made.
+  const styleTouched = useRef(false);
+  useEffect(() => {
+    if (!styleTouched.current) {
+      setSelectedStyle(settings.artStyle);
+    }
+  }, [settings.artStyle]);
+
+  // Selection is local; it's persisted on generate rather than on tap so
+  // browsing the styles doesn't re-run updateSettings (which re-schedules the
+  // daily notification as a side effect) once per chip.
+  const handleSelectStyle = useCallback((style: ArtStyleId) => {
+    styleTouched.current = true;
+    setSelectedStyle(style);
+  }, []);
+
+  const getStyleLabel = useCallback(
+    (key: ArtStyleId): string => (t.artStyles as Record<string, string>)[key] || key,
+    [t],
+  );
+
   const generateImageMutation = useMutation({
     mutationFn: async () => {
       const lines: [string, string, string] = [
@@ -63,7 +89,11 @@ export default function HaikuImageScreen() {
       // Credit deduction happens server-side inside the Cloud Function:
       // it spends 2 credits in a Firestore transaction *before* calling
       // OpenAI, and refunds atomically if generation fails.
-      return generateHaikuImage({ lines, theme: themeLabel });
+      return generateHaikuImage({
+        lines,
+        theme: themeLabel,
+        style: selectedStyle,
+      });
     },
     onSuccess: (data) => {
       const dataUri = `data:${data.mimeType};base64,${data.base64Data}`;
@@ -123,13 +153,17 @@ export default function HaikuImageScreen() {
 
       Animated.timing(checkAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
 
+      if (selectedStyle !== settings.artStyle) {
+        void updateSettings({ artStyle: selectedStyle });
+      }
+
       await generateImageMutation.mutateAsync();
     } catch (err) {
       console.error('Purchase/generate failed:', err);
       setHasPurchased(false);
       checkAnim.setValue(0);
     }
-  }, [isAuthenticated, credits, scaleAnim, checkAnim, generateImageMutation]);
+  }, [isAuthenticated, credits, scaleAnim, checkAnim, generateImageMutation, selectedStyle, settings.artStyle, updateSettings]);
 
   const handleDownload = useCallback(async () => {
     if (!generatedImage) return;
@@ -238,6 +272,19 @@ export default function HaikuImageScreen() {
           <View style={styles.previewDivider} />
           <Text style={styles.previewLine}>{params.line3}</Text>
         </View>
+
+        {!generatedImage && !generateImageMutation.isPending && (
+          <View style={styles.styleSection}>
+            <PackPicker
+              label={t.haikuImage.artStyle}
+              packs={ART_STYLES}
+              selected={selectedStyle}
+              onSelect={handleSelectStyle}
+              getLabel={getStyleLabel}
+              testIDPrefix="style-chip"
+            />
+          </View>
+        )}
 
         {!generatedImage && !generateImageMutation.isPending && (
           <View style={styles.priceSection}>
@@ -420,6 +467,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.divider,
     marginVertical: 6,
   },
+  // No card background here — the picker's own chips carry the surface, and
+  // boxing them inside another card reads as a nested panel.
+  styleSection: {
+    marginBottom: 8,
+  },
   priceSection: {
     backgroundColor: Colors.card,
     borderRadius: 16,
@@ -569,7 +621,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   purchaseText: {
-    color: Colors.white,
+    color: Colors.blackLight,
     fontSize: 17,
     fontWeight: '600' as const,
   },

@@ -1,7 +1,12 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
 import OpenAI from 'openai';
-import { buildImagePrompt } from './prompts';
+import {
+  buildImagePrompt,
+  isArtStyle,
+  DEFAULT_ART_STYLE,
+  type ArtStyle,
+} from './prompts';
 import {
   spendForImage,
   refundImage,
@@ -13,6 +18,12 @@ const openaiKey = defineSecret('OPENAI_API_KEY');
 interface GenerateImageRequest {
   lines: [string, string, string];
   theme: string;
+  /**
+   * Art style pack. Selects the medium and composition paragraphs of the
+   * image prompt. Unknown / absent values fall back to the original sumi-e
+   * look, so older clients keep getting exactly what they always got.
+   */
+  style?: ArtStyle;
 }
 
 interface GenerateImageResponse {
@@ -55,6 +66,13 @@ export const generateHaikuImage = onCall<
       throw new HttpsError('invalid-argument', 'theme is required.');
     }
 
+    // Validate against our own list rather than trusting the client, so a
+    // tampered build can't inject an arbitrary prompt fragment. An unknown
+    // style is not an error — it degrades to the default look.
+    const style: ArtStyle = isArtStyle(data.style)
+      ? data.style
+      : DEFAULT_ART_STYLE;
+
     try {
       await spendForImage(uid);
     } catch (error) {
@@ -67,7 +85,11 @@ export const generateHaikuImage = onCall<
 
     try {
       const openai = new OpenAI({ apiKey: openaiKey.value() });
-      const prompt = buildImagePrompt(lines as [string, string, string], theme);
+      const prompt = buildImagePrompt(
+        lines as [string, string, string],
+        theme,
+        style,
+      );
 
       const response = await openai.images.generate({
         model: 'gpt-image-1',
