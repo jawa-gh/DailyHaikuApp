@@ -11,11 +11,12 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { X, Feather, Cherry } from 'lucide-react-native';
+import { X, Feather, Cherry, Sparkles } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import { useAuth } from '@/providers/AuthProvider';
 import { useLanguage } from '@/providers/LanguageProvider';
+import { SIGNUP_BONUS_CREDITS } from '@/types/auth';
 
 // Caps the content column on wide canvases (iPad / iPadOS 26 resizable
 // windows). Larger than any phone width, so it's a no-op on phones.
@@ -114,6 +115,15 @@ export default function AuthScreen() {
           <Text style={styles.brandSubtitle}>
             {t.auth.subtitle}
           </Text>
+          <View style={styles.bonusPill}>
+            <Sparkles size={14} color={Colors.accent} />
+            <Text style={styles.bonusText}>
+              {t.auth.signupBonus.replace(
+                '{count}',
+                String(SIGNUP_BONUS_CREDITS),
+              )}
+            </Text>
+          </View>
         </Animated.View>
 
         <Animated.View
@@ -166,6 +176,9 @@ export default function AuthScreen() {
 
         <Animated.View style={[styles.benefitsSection, { opacity: fadeAnim }]}>
           <Text style={styles.benefitsTitle}>{t.auth.whySignIn}</Text>
+          {/* The bullets below are feature-framed; this line is the actual
+              answer to "why do you need my identity at all". */}
+          <Text style={styles.whyNeededText}>{t.auth.whyNeeded}</Text>
           <View style={styles.benefitsList}>
             <View style={styles.benefitRow}>
               <View style={styles.benefitDotWrap}>
@@ -186,6 +199,7 @@ export default function AuthScreen() {
               <Text style={styles.benefitText}>{t.auth.benefit3}</Text>
             </View>
           </View>
+          <Text style={styles.privacyNoteText}>{t.auth.privacyNote}</Text>
         </Animated.View>
 
         <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
@@ -319,6 +333,27 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: Colors.blackLight,
   },
+  // Reads as an offer rather than body copy — accent border + gold text, so
+  // it's the thing the eye lands on after the subtitle.
+  bonusPill: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginTop: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.accent,
+    backgroundColor: Colors.accentLight,
+  },
+  bonusText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 19,
+    color: Colors.accent,
+    fontWeight: '500' as const,
+  },
   benefitsSection: {
     backgroundColor: Colors.card,
     borderRadius: 16,
@@ -331,8 +366,20 @@ const styles = StyleSheet.create({
     color: Colors.text,
     marginBottom: 14,
   },
+  whyNeededText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    lineHeight: 21,
+    marginBottom: 16,
+  },
   benefitsList: {
     gap: 12,
+  },
+  privacyNoteText: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    lineHeight: 18,
+    marginTop: 14,
   },
   benefitRow: {
     flexDirection: 'row',

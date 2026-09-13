@@ -1,5 +1,10 @@
 node_modules/
-lib/
+# Anchored. Unanchored `lib/` matches a `lib` directory at ANY depth, which
+# silently excluded `functions/src/lib/` — i.e. user-doc.ts (every credit
+# transaction) and firestore.ts (the named-DB wiring) were never committed, and
+# a fresh clone couldn't build functions. This only ever meant the compiled
+# output, which the root .gitignore also covers.
+/lib/
 *.local
 .env
 firebase-debug.log

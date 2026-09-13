@@ -25,3 +25,13 @@ export const FREE_DAILY_LIMIT = 1;
 // TypeScript flagging an impossible-comparison error.
 export const HAIKU_CREDIT_COST: number = 1;
 export const IMAGE_CREDIT_COST: number = 2;
+
+/**
+ * Credits a brand-new account is given, for DISPLAY ONLY.
+ *
+ * The grant itself happens server-side when the user doc is first created —
+ * see SIGNUP_BONUS_CREDITS in `functions/src/lib/user-doc.ts`, which is the
+ * authoritative value. This copy exists so the sign-in screen can name the
+ * number instead of hardcoding it into translated strings. **Change both.**
+ */
+export const SIGNUP_BONUS_CREDITS: number = 2;

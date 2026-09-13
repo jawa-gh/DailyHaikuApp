@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Platform } from 'react-native';
 import createContextHook from '@nkzw/create-context-hook';
 import Purchases, {
@@ -7,8 +7,10 @@ import Purchases, {
   LOG_LEVEL,
 } from 'react-native-purchases';
 import { doc, onSnapshot } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/providers/AuthProvider';
-import { db } from '@/lib/firebase';
+import { db, functions } from '@/lib/firebase';
 
 // RevenueCat *public* SDK keys, configured per platform.
 //
@@ -23,6 +25,17 @@ const REVENUECAT_IOS_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY ?? '';
 const REVENUECAT_ANDROID_KEY = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY ?? '';
 
 const STARTER_PACK_ID = 'haiku_4_starter';
+
+// One-time signup bonus. Server-side and idempotent — see
+// functions/src/claim-signup-bonus.ts.
+const callClaimSignupBonus = httpsCallable<unknown, { granted: boolean; credits: number }>(
+  functions,
+  'claimSignupBonus',
+);
+
+// Per-uid so signing in with a different account still sees its own hint, and
+// so one device showing it doesn't suppress it for another user of that phone.
+const bonusHintKey = (uid: string) => `signup_bonus_hint_seen:${uid}`;
 
 // Hard ceiling on how long we'll wait for RevenueCat to return offerings.
 // The SDK can hang indefinitely when the App Store Connect ↔ RevenueCat link
@@ -41,12 +54,15 @@ interface UserState {
   credits: number;
   dailyFreeUsed: boolean;
   dailyFreeDate: string;
+  /** `null` while unknown (no snapshot yet / doc doesn't exist). */
+  signupBonusGranted: boolean | null;
 }
 
 const DEFAULT_USER_STATE: UserState = {
   credits: 0,
   dailyFreeUsed: false,
   dailyFreeDate: '',
+  signupBonusGranted: null,
 };
 
 /** Today as YYYY-MM-DD in UTC — must match the server's `getTodayUtc()`. */
@@ -68,6 +84,12 @@ export const [PurchaseProvider, usePurchases] = createContextHook(() => {
   // Distinct from `isReady` because we don't want to attempt offerings when
   // configure was skipped due to a missing key.
   const [isConfigured, setIsConfigured] = useState(false);
+  // `null` until the persisted value has loaded — we never render the hint
+  // during that window, so it can't flash for someone who already dismissed it.
+  const [bonusHintSeen, setBonusHintSeen] = useState<boolean | null>(null);
+  // uid we've already fired claimSignupBonus for this session. The callable is
+  // idempotent, so this is purely about not re-calling on every snapshot.
+  const claimedForUid = useRef<string | null>(null);
 
   // Initialize RevenueCat once.
   useEffect(() => {
@@ -134,6 +156,52 @@ export const [PurchaseProvider, usePurchases] = createContextHook(() => {
 
     identify();
   }, [isReady, user]);
+
+  // Load this user's hint-dismissal flag. Re-runs on user change so switching
+  // accounts re-evaluates rather than inheriting the previous user's state.
+  useEffect(() => {
+    if (!user) {
+      setBonusHintSeen(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const stored = await AsyncStorage.getItem(bonusHintKey(user.id));
+        if (!cancelled) setBonusHintSeen(stored === '1');
+      } catch (error) {
+        // Can't tell whether it was seen — assume it was, so a storage fault
+        // can't turn into a hint that reappears on every launch.
+        console.error('Failed to read bonus hint flag:', error);
+        if (!cancelled) setBonusHintSeen(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  // Claim the signup bonus once per account that's still due it. Driven off the
+  // subscribed doc rather than fired blindly on sign-in, so an account that
+  // already has it never calls at all.
+  useEffect(() => {
+    if (!user) {
+      claimedForUid.current = null;
+      return;
+    }
+    // `null` = no snapshot yet; wait rather than guess.
+    if (userState.signupBonusGranted !== false) return;
+    if (claimedForUid.current === user.id) return;
+
+    claimedForUid.current = user.id;
+    callClaimSignupBonus().catch((error) => {
+      // Not fatal: the spend helpers apply the bonus too, so the credits still
+      // arrive the moment the user generates something. Allow a retry next
+      // launch by clearing the guard.
+      console.error('Failed to claim signup bonus:', error);
+      claimedForUid.current = null;
+    });
+  }, [user, userState.signupBonusGranted]);
 
   // Fetch available offerings. Wrapped in useCallback so the purchase screen
   // can call it again as a "Try again" action when the first fetch errored.
@@ -208,10 +276,13 @@ export const [PurchaseProvider, usePurchases] = createContextHook(() => {
             credits: typeof data.credits === 'number' ? data.credits : 0,
             dailyFreeUsed: data?.dailyFree?.used ?? false,
             dailyFreeDate: data?.dailyFree?.date ?? '',
+            // Absent on docs written before the bonus existed — treat as
+            // "not granted yet" so those accounts get it too.
+            signupBonusGranted: data?.signupBonusGranted === true,
           });
         } else {
-          // Doc not yet created — server will lazy-create on first generation
-          // or on first webhook-triggered credit grant.
+          // Doc not yet created. claimSignupBonus creates it, which is also
+          // what makes the credits badge correct before the first generation.
           setUserState(DEFAULT_USER_STATE);
         }
       },
@@ -313,6 +384,29 @@ export const [PurchaseProvider, usePurchases] = createContextHook(() => {
     );
   }, [customerInfo]);
 
+  // Show the one-time "credits added" hint once the bonus is actually on the
+  // account and this user hasn't dismissed it. Existing users are the reason
+  // this exists — they get topped up silently otherwise — but new users see it
+  // too, where it reads as confirmation of the offer on the sign-in screen.
+  const showBonusHint = useMemo(() => {
+    return (
+      isAuthenticated &&
+      bonusHintSeen === false &&
+      userState.signupBonusGranted === true
+    );
+  }, [isAuthenticated, bonusHintSeen, userState.signupBonusGranted]);
+
+  const dismissBonusHint = useCallback(async () => {
+    setBonusHintSeen(true);
+    if (!user) return;
+    try {
+      await AsyncStorage.setItem(bonusHintKey(user.id), '1');
+    } catch (error) {
+      // Dismissed for this session regardless; worst case it returns next launch.
+      console.error('Failed to persist bonus hint dismissal:', error);
+    }
+  }, [user]);
+
   return {
     isReady,
     packages,
@@ -326,6 +420,8 @@ export const [PurchaseProvider, usePurchases] = createContextHook(() => {
     canGenerate,
     needsCredits,
     hasStarterPack,
+    showBonusHint,
+    dismissBonusHint,
     purchasePackage,
     restorePurchases,
     // spendCredit / markDailyFreeUsed are intentionally NOT exposed — those

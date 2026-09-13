@@ -16,3 +16,4 @@ export { generateHaiku } from './generate-haiku';
 export { generateHaikuImage } from './generate-image';
 export { revenuecatWebhook } from './revenuecat-webhook';
 export { deleteAccount } from './delete-account';
+export { claimSignupBonus } from './claim-signup-bonus';

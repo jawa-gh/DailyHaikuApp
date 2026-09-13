@@ -17,7 +17,7 @@ import {
   UIManager,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Heart, RefreshCw, Share2, Lock, Sparkles, Palette, X, ChevronRight, BookOpen, ImageIcon, PenLine, Feather } from 'lucide-react-native';
+import { Heart, RefreshCw, Share2, Lock, Sparkles, Palette, X, ChevronRight, BookOpen, ImageIcon, PenLine, Feather, HelpCircle } from 'lucide-react-native';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
@@ -26,9 +26,10 @@ import { useAuth } from '@/providers/AuthProvider';
 import { usePurchases } from '@/providers/PurchaseProvider';
 import { useLanguage } from '@/providers/LanguageProvider';
 import { SEASON_THEMES, SELECTABLE_THEMES, formatDate, getTodayDateString } from '@/constants/haiku-themes';
-import { HAIKU_CREDIT_COST } from '@/types/auth';
+import { HAIKU_CREDIT_COST, SIGNUP_BONUS_CREDITS } from '@/types/auth';
 import { isInsufficientCredits, isNotAuthenticated } from '@/utils/errors';
 import HaikuExplainer from '@/components/HaikuExplainer';
+import WhyAccount from '@/components/WhyAccount';
 
 // Caps the readable content column so it doesn't stretch edge-to-edge on wide
 // canvases (iPad / iPadOS 26 resizable windows). Larger than any phone width,
@@ -46,7 +47,7 @@ export default function TodayScreen() {
   const insets = useSafeAreaInsets();
   const { todayHaiku, isGenerating, isLoading, generateTodayHaiku, toggleFavorite } = useHaikus();
   const { isAuthenticated, needsSignUp } = useAuth();
-  const { canGenerate, canGenerateForFree, needsCredits, credits, packages } = usePurchases();
+  const { canGenerate, canGenerateForFree, needsCredits, credits, packages, showBonusHint, dismissBonusHint } = usePurchases();
 
   // Cheapest package's localized price string (e.g. "€4.99"), used for the
   // "starting at …" hint in the out-of-credits banner. null while RevenueCat
@@ -62,6 +63,7 @@ export default function TodayScreen() {
   const [customTopic, setCustomTopic] = useState<string>('');
   const [isCustomMode, setIsCustomMode] = useState<boolean>(false);
   const [showHaikuInfo, setShowHaikuInfo] = useState<boolean>(false);
+  const [showWhyAccount, setShowWhyAccount] = useState<boolean>(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -72,6 +74,8 @@ export default function TodayScreen() {
   const bannerAnim = useRef(new Animated.Value(0)).current;
   // Drives the "What is a haiku?" chevron rotation (0 = ▸ collapsed, 1 = ▾).
   const infoChevronAnim = useRef(new Animated.Value(0)).current;
+  // Same, for the signed-out "Why do I need an account?" section.
+  const whyChevronAnim = useRef(new Animated.Value(0)).current;
 
   const toggleHaikuInfo = useCallback(() => {
     if (Platform.OS !== 'web') {
@@ -89,6 +93,22 @@ export default function TodayScreen() {
       return next;
     });
   }, [infoChevronAnim]);
+
+  const toggleWhyAccount = useCallback(() => {
+    if (Platform.OS !== 'web') {
+      Haptics.selectionAsync();
+    }
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setShowWhyAccount((prev) => {
+      const next = !prev;
+      Animated.timing(whyChevronAnim, {
+        toValue: next ? 1 : 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+      return next;
+    });
+  }, [whyChevronAnim]);
 
   // Guards the mount-time auto-generate so it fires at most once per
   // authenticated session. A failing call toggles `isGenerating` true→false,
@@ -387,6 +407,31 @@ export default function TodayScreen() {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
+        {showBonusHint && (
+          <View style={styles.bonusHint}>
+            <View style={styles.bonusHintIcon}>
+              <Sparkles size={18} color={Colors.accent} />
+            </View>
+            <View style={styles.bonusHintTextWrap}>
+              <Text style={styles.bonusHintTitle}>
+                {t.today.bonusHintTitle.replace(
+                  '{count}',
+                  String(SIGNUP_BONUS_CREDITS),
+                )}
+              </Text>
+              <Text style={styles.bonusHintBody}>{t.today.bonusHintBody}</Text>
+            </View>
+            <TouchableOpacity
+              onPress={dismissBonusHint}
+              hitSlop={12}
+              activeOpacity={0.7}
+              testID="dismiss-bonus-hint"
+            >
+              <X size={18} color={Colors.textMuted} />
+            </TouchableOpacity>
+          </View>
+        )}
+
         {(isLoading || isGenerating) && !todayHaiku ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={Colors.accent} />
@@ -446,6 +491,15 @@ export default function TodayScreen() {
             <Text style={styles.signInPromptDescription}>
               {t.today.signInPromptDescription}
             </Text>
+            <View style={styles.bonusPill}>
+              <Sparkles size={14} color={Colors.accent} />
+              <Text style={styles.bonusText}>
+                {t.auth.signupBonus.replace(
+                  '{count}',
+                  String(SIGNUP_BONUS_CREDITS),
+                )}
+              </Text>
+            </View>
             <TouchableOpacity
               style={styles.signInPromptButton}
               onPress={() => router.push('/auth')}
@@ -571,6 +625,46 @@ export default function TodayScreen() {
               </TouchableOpacity>
             ) : null}
           </Animated.View>
+        )}
+
+        {/* Sign-in is a hard gate — the generate function rejects anonymous
+            callers — so signed-out users hit a wall before seeing any value.
+            Answer the obvious objection right where it lands, collapsed so it
+            costs nothing for anyone who doesn't care. */}
+        {!isAuthenticated && (
+          <View style={styles.infoSection}>
+            <TouchableOpacity
+              style={styles.infoToggle}
+              onPress={toggleWhyAccount}
+              activeOpacity={0.7}
+              testID="why-account-toggle"
+            >
+              <View style={styles.infoToggleLeft}>
+                <HelpCircle size={16} color={Colors.accent} />
+                <Text style={styles.infoToggleLabel}>{t.today.whyAccount}</Text>
+              </View>
+              <Animated.View
+                style={{
+                  transform: [
+                    {
+                      rotate: whyChevronAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0deg', '90deg'],
+                      }),
+                    },
+                  ],
+                }}
+              >
+                <ChevronRight size={18} color={Colors.textMuted} />
+              </Animated.View>
+            </TouchableOpacity>
+
+            {showWhyAccount && (
+              <View style={styles.infoContent}>
+                <WhyAccount />
+              </View>
+            )}
+          </View>
         )}
 
         {showHaikuExplainer && (
@@ -905,6 +999,62 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 12,
     marginBottom: 8,
+  },
+  // One-time "credits added" card. Sits at the top of the scroll content, so
+  // it's the first thing seen; dismissal is persisted per uid.
+  bonusHint: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 20,
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.accent,
+    backgroundColor: Colors.accentLight,
+  },
+  bonusHintIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+  },
+  bonusHintTextWrap: {
+    flex: 1,
+  },
+  bonusHintTitle: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: Colors.accent,
+    marginBottom: 4,
+  },
+  bonusHintBody: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: Colors.textSecondary,
+  },
+  // Matches the offer pill on the auth screen so the two read as one message.
+  bonusPill: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginHorizontal: 12,
+    marginBottom: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.accent,
+    backgroundColor: Colors.accentLight,
+  },
+  bonusText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 19,
+    color: Colors.accent,
+    fontWeight: '500' as const,
   },
   signInPromptButton: {
     backgroundColor: Colors.ink,
