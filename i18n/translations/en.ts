@@ -197,6 +197,10 @@ const en = {
     message: "This page doesn't exist.",
     returnHome: 'Return to your haiku',
   },
+  notification: {
+    title: 'Your Daily Haiku',
+    body: 'A new haiku awaits you. Take a moment of calm.',
+  },
   whyAccount: {
     reason1Title: 'Your free haiku each day',
     reason1: 'Every haiku is written fresh by an AI, and each one costs real money to produce. Your account is simply how the app knows to give you your one free haiku a day.',

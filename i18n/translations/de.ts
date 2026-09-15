@@ -199,6 +199,10 @@ const de: Translations = {
     message: 'Diese Seite existiert nicht.',
     returnHome: 'Zurück zu deinem Haiku',
   },
+  notification: {
+    title: 'Dein tägliches Haiku',
+    body: 'Ein neues Haiku wartet auf dich. Nimm dir einen Moment Ruhe.',
+  },
   whyAccount: {
     reason1Title: 'Dein freies Haiku pro Tag',
     reason1: 'Jedes Haiku wird neu von einer KI geschrieben, und jedes kostet echtes Geld. Dein Konto ist nur dafür da, dass die App weiß, wem ihr freies Haiku pro Tag zusteht.',

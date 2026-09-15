@@ -199,6 +199,10 @@ const es: Translations = {
     message: 'Esta página no existe.',
     returnHome: 'Volver a tu haiku',
   },
+  notification: {
+    title: 'Tu haiku diario',
+    body: 'Un nuevo haiku te espera. Tómate un momento de calma.',
+  },
   whyAccount: {
     reason1Title: 'Tu haiku gratis cada día',
     reason1: 'Cada haiku lo escribe una IA desde cero, y cada uno cuesta dinero real. Tu cuenta solo sirve para saber a quién le corresponde su haiku gratuito del día.',

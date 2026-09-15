@@ -52,7 +52,7 @@ async function saveSettings(settings: HaikuSettings): Promise<void> {
 export const [HaikuProvider, useHaikus] = createContextHook(() => {
   const queryClient = useQueryClient();
   const { canGenerate } = usePurchases();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const [haikus, setHaikus] = useState<Haiku[]>([]);
   const [settings, setSettings] = useState<HaikuSettings>(DEFAULT_SETTINGS);
 
@@ -77,6 +77,32 @@ export const [HaikuProvider, useHaikus] = createContextHook(() => {
       setSettings(settingsQuery.data);
     }
   }, [settingsQuery.data]);
+
+  // Read as plain values so exhaustive-deps can track them without pulling in
+  // the whole `t` object.
+  const notificationTitle = t.notification.title;
+  const notificationBody = t.notification.body;
+
+  // Single authority over the OS schedule. It runs on mount as well as on
+  // change, which is what repairs notifications an older build scheduled in
+  // English — the OS keeps the text it was given, so nothing else would.
+  useEffect(() => {
+    if (settings.notificationsEnabled) {
+      void scheduleDailyNotification(
+        settings.notificationHour,
+        settings.notificationMinute,
+        { title: notificationTitle, body: notificationBody },
+      );
+    } else {
+      void cancelAllNotifications();
+    }
+  }, [
+    settings.notificationsEnabled,
+    settings.notificationHour,
+    settings.notificationMinute,
+    notificationTitle,
+    notificationBody,
+  ]);
 
   const todayHaiku = useMemo(() => {
     const today = getTodayDateString();
@@ -212,11 +238,6 @@ export const [HaikuProvider, useHaikus] = createContextHook(() => {
       setSettings(merged);
       await saveSettings(merged);
 
-      if (merged.notificationsEnabled) {
-        await scheduleDailyNotification(merged.notificationHour, merged.notificationMinute);
-      } else {
-        await cancelAllNotifications();
-      }
     },
     [settings]
   );

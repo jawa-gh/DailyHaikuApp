@@ -199,6 +199,10 @@ const fr: Translations = {
     message: "Cette page n'existe pas.",
     returnHome: 'Retour à votre haiku',
   },
+  notification: {
+    title: 'Votre haïku du jour',
+    body: 'Un nouveau haïku vous attend. Accordez-vous un moment de calme.',
+  },
   whyAccount: {
     reason1Title: 'Votre haïku gratuit chaque jour',
     reason1: "Chaque haïku est écrit à neuf par une IA, et chacun coûte de l'argent. Votre compte sert simplement à savoir à qui revient son haïku gratuit du jour.",

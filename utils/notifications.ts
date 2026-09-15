@@ -27,7 +27,21 @@ export async function requestNotificationPermissions(): Promise<boolean> {
   return finalStatus === 'granted';
 }
 
-export async function scheduleDailyNotification(hour: number, minute: number): Promise<string | null> {
+export interface NotificationContent {
+  title: string;
+  body: string;
+}
+
+/**
+ * The OS stores the text given here, so it is fixed until the notification is
+ * rescheduled — changing the app language later does not update a pending one.
+ * Callers must re-invoke this on language change; `HaikuProvider` does.
+ */
+export async function scheduleDailyNotification(
+  hour: number,
+  minute: number,
+  content: NotificationContent,
+): Promise<string | null> {
   if (Platform.OS === 'web') {
     return null;
   }
@@ -37,8 +51,8 @@ export async function scheduleDailyNotification(hour: number, minute: number): P
 
     const id = await Notifications.scheduleNotificationAsync({
       content: {
-        title: 'Your Daily Haiku',
-        body: 'A new haiku awaits you. Take a moment of calm.',
+        title: content.title,
+        body: content.body,
         sound: true,
       },
       trigger: {
