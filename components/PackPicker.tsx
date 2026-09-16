@@ -1,8 +1,4 @@
-// Horizontal chip row for picking a poet voice or an art style.
-//
-// Shared by the topic sheet on Today and the artwork screen, which need the
-// same control over two different pack lists. Packs are free — there is no
-// locked state; see `constants/packs.ts`.
+// Horizontal chip row for picking a pack, currently the artwork screen's style.
 
 import React from 'react';
 import {
@@ -18,7 +14,7 @@ import Colors from '@/constants/colors';
 import { type Pack } from '@/constants/packs';
 
 interface PackPickerProps<Id extends string> {
-  /** Section label shown above the row, e.g. "Poet voice". */
+  /** Section label shown above the row, e.g. "Art style". */
   label: string;
   packs: Pack<Id>[];
   selected: Id;

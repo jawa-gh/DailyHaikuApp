@@ -15,12 +15,6 @@
 // in credits; a second paywall on top of that is friction for little revenue,
 // and styles cost nothing extra to serve. They exist to make a credit worth
 // more, not to be sold separately. Don't add entitlement checks here.
-//
-// There were once six poet "voices" here too. They were dropped: a haiku is
-// ~17 syllables and the base prompt already fixes the register, so the
-// difference between voices was imperceptible to anyone who doesn't read
-// haiku criticism. Art styles survive because the output is a picture and the
-// difference is obvious at a glance.
 
 export type ArtStyleId =
   | 'sumi'

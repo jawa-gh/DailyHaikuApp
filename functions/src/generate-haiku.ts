@@ -2,12 +2,9 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
 import OpenAI from 'openai';
 import {
-  composeHaikuPrompt,
-  isPoetVoice,
-  DEFAULT_POET_VOICE,
+  HAIKU_SYSTEM_PROMPTS,
   THEME_LABEL,
   type HaikuLanguage,
-  type PoetVoice,
 } from './prompts';
 
 const SUPPORTED_LANGUAGES: HaikuLanguage[] = ['en', 'de', 'fr', 'es'];
@@ -38,12 +35,6 @@ interface GenerateHaikuRequest {
   theme: string;
   /** UI language code; haiku is generated in this language. Defaults to 'en'. */
   language?: HaikuLanguage;
-  /**
-   * Poet voice pack. Shifts register and subject matter without touching the
-   * form rules. Unknown / absent values fall back to the classic voice, which
-   * is the behaviour clients built before packs existed already get.
-   */
-  voice?: PoetVoice;
 }
 
 interface GenerateHaikuResponse {
@@ -87,16 +78,7 @@ export const generateHaiku = onCall<
       data.language && SUPPORTED_LANGUAGES.includes(data.language)
         ? data.language
         : 'en';
-    // Same treatment for the voice pack: validate against our own list rather
-    // than trusting the client, so a stale or tampered build can't inject a
-    // prompt fragment. Packs cost nothing extra to serve, so there is no
-    // entitlement check here — if the packs are ever sold individually, this
-    // is where the server-side ownership check belongs.
-    const voice: PoetVoice = isPoetVoice(data.voice)
-      ? data.voice
-      : DEFAULT_POET_VOICE;
-
-    const systemPrompt = composeHaikuPrompt(language, voice);
+    const systemPrompt = HAIKU_SYSTEM_PROMPTS[language];
     const themeLabel = THEME_LABEL[language];
 
     // Try to spend (free slot or 1 credit). Server is the source of truth —
