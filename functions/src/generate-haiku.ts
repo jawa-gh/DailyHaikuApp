@@ -16,8 +16,16 @@ import {
   refundHaiku,
   InsufficientFundsError,
 } from './lib/user-doc';
+import {
+  HAIKU_RESPONSE_SCHEMA,
+  generateWithSyllableCheck,
+  parseDraft,
+} from './lib/haiku-form';
 
 const openaiKey = defineSecret('OPENAI_API_KEY');
+
+// Retries are on us, not the user — they were charged once, before generation.
+const MAX_HAIKU_ATTEMPTS = 3;
 
 type Tier = 'free' | 'premium';
 
@@ -111,50 +119,40 @@ export const generateHaiku = onCall<
 
     try {
       const openai = new OpenAI({ apiKey: openaiKey.value() });
-      const response = await openai.chat.completions.create({
-        model,
-        temperature,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: `${themeLabel}: ${theme}` },
-        ],
-        response_format: {
-          type: 'json_schema',
-          json_schema: {
-            name: 'haiku',
-            strict: true,
-            schema: {
-              type: 'object',
-              properties: {
-                line1: { type: 'string' },
-                line2: { type: 'string' },
-                line3: { type: 'string' },
-              },
-              required: ['line1', 'line2', 'line3'],
-              additionalProperties: false,
+      const haiku = await generateWithSyllableCheck(async () => {
+        const response = await openai.chat.completions.create({
+          model,
+          temperature,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: `${themeLabel}: ${theme}` },
+          ],
+          response_format: {
+            type: 'json_schema',
+            json_schema: {
+              name: 'haiku',
+              strict: true,
+              schema: HAIKU_RESPONSE_SCHEMA,
             },
           },
-        },
-      });
+        });
+        return parseDraft(response.choices[0]?.message?.content);
+      }, MAX_HAIKU_ATTEMPTS);
 
-      const content = response.choices[0]?.message?.content;
-      if (!content) {
-        throw new Error('OpenAI returned empty content');
-      }
-
-      const parsed = JSON.parse(content);
-      if (
-        typeof parsed.line1 !== 'string' ||
-        typeof parsed.line2 !== 'string' ||
-        typeof parsed.line3 !== 'string'
-      ) {
-        throw new Error('OpenAI returned malformed shape');
+      if (haiku.error > 0) {
+        // Counts only — lines can echo a user's custom topic.
+        console.warn('Haiku missed 5-7-5 after retries', {
+          language,
+          model,
+          attempts: haiku.attempts,
+          counts: haiku.counts,
+        });
       }
 
       return {
-        line1: parsed.line1.trim(),
-        line2: parsed.line2.trim(),
-        line3: parsed.line3.trim(),
+        line1: haiku.lines[0],
+        line2: haiku.lines[1],
+        line3: haiku.lines[2],
         usedFree,
       };
     } catch (error) {
